@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Tracking Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .button {
+            padding: 10px 15px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            color: white;
+        }
+        .primary { background-color: #007bff; }
+        .success { background-color: #28a745; }
+        .warning { background-color: #ffc107; color: black; }
+        .danger { background-color: #dc3545; }
+        .info { background-color: #17a2b8; }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .status {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 Smart Tracking Demo</h1>
+    
+    <div class="status" id="status">
+        Initializing SDK...
+    </div>
+
+    <div class="section">
+        <h2>📋 Data Attribute Examples</h2>
+        <p>These buttons use data attributes for tracking - no JavaScript required!</p>
+        
+        <button class="button primary" data-analytics="basic_button_clicked">
+            Basic Button
+        </button>
+        
+        <button class="button success" 
+                data-analytics-event="signup_attempt"
+                data-analytics-prop-button-type="primary"
+                data-analytics-prop-location="header">
+            Sign Up with Props
+        </button>
+        
+        <button class="button info" 
+                data-analytics="complex_action"
+                data-analytics-props='{"category": "engagement", "priority": "high"}'>
+            Complex Action
+        </button>
+    </div>
+
+    <div class="section">
+        <h2>🎨 CSS Class Examples</h2>
+        <p>Buttons with "analytics-" prefix classes are automatically tracked:</p>
+        
+        <button class="button warning analytics-purchase">
+            Purchase (Class)
+        </button>
+        
+        <button class="button danger analytics-download">
+            Download (Class)
+        </button>
+    </div>
+
+    <div class="section">
+        <h2>🆔 ID-based Examples</h2>
+        <p>Elements with "analytics-" prefix IDs are automatically tracked:</p>
+        
+        <button class="button primary" id="analytics-contact-form">
+            Contact (ID)
+        </button>
+        
+        <button class="button success" id="analytics-newsletter-subscribe">
+            Subscribe (ID)
+        </button>
+    </div>
+
+    <div class="section">
+        <h2>📝 Form Example</h2>
+        <form data-analytics-event="contact_form_submit"
+              data-analytics-type="submit"
+              data-analytics-prop-form-type="contact">
+            
+            <div class="form-group">
+                <label for="name">Name:</label>
+                <input type="text" 
+                       id="name"
+                       data-analytics="name_input"
+                       data-analytics-type="focus"
+                       data-analytics-prop-field="name">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" 
+                       id="email"
+                       data-analytics="email_input"
+                       data-analytics-type="change"
+                       data-analytics-debounce="true"
+                       data-analytics-prop-field="email">
+            </div>
+            
+            <div class="form-group">
+                <label for="message">Message:</label>
+                <textarea id="message"
+                          data-analytics="message_input"
+                          data-analytics-type="change"
+                          data-analytics-debounce="true"
+                          data-analytics-prop-field="message"
+                          rows="4"></textarea>
+            </div>
+            
+            <button type="submit" class="button primary">Submit Form</button>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2>⚡ Advanced Features</h2>
+        
+        <button class="button warning" 
+                data-analytics="debounced_action"
+                data-analytics-debounce="true"
+                data-analytics-debounce-delay="1000">
+            Debounced Action (1s delay)
+        </button>
+        
+        <button class="button info" 
+                data-analytics="once_only_action"
+                data-analytics-once="true">
+            Track Once Only
+        </button>
+        
+        <button class="button danger" 
+                data-analytics="conditional_action"
+                data-analytics-condition="confirm('Track this event?')">
+            Conditional Action
+        </button>
+    </div>
+
+    <div class="section">
+        <h2>🛒 E-commerce Example</h2>
+        <div style="border: 1px solid #ccc; padding: 15px; border-radius: 4px;">
+            <h3 data-analytics-prop-product-name="Premium Widget">Premium Widget</h3>
+            <p data-analytics-prop-product-category="electronics">High-quality electronic widget</p>
+            <p data-analytics-prop-product-price="99.99">$99.99</p>
+            
+            <button class="button success" 
+                    data-analytics="add_to_cart"
+                    data-analytics-prop-product-id="123"
+                    data-analytics-prop-product-price="99.99">
+                Add to Cart
+            </button>
+            
+            <button class="button warning analytics-add_to_wishlist"
+                    data-analytics-prop-product-id="123">
+                ♥ Wishlist
+            </button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>🔍 Dynamic Content</h2>
+        <p>Click the button to add dynamically tracked elements:</p>
+        
+        <button class="button primary" onclick="addDynamicButton()">
+            Add Dynamic Button
+        </button>
+        
+        <div id="dynamic-container" style="margin-top: 15px;"></div>
+    </div>
+
+    <div class="section">
+        <h2>📊 Analytics Stats</h2>
+        <button class="button info" onclick="showStats()">
+            Show Analytics Stats
+        </button>
+        <button class="button warning" onclick="rescanElements()">
+            Rescan Elements
+        </button>
+        <button class="button danger" onclick="clearEvents()">
+            Clear Event Log
+        </button>
+        
+        <div id="event-log" style="margin-top: 15px; max-height: 200px; overflow-y: auto; background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;"></div>
+    </div>
+
+    <!-- Include the built SDK -->
+    <script src="../dist/index.js"></script>
+    
+    <script>
+        let analytics;
+        let eventCount = 0;
+
+        // Initialize analytics
+        function initAnalytics() {
+            try {
+                analytics = new RealtimeAnalytics({
+                    apiKey: 'demo-api-key',
+                    apiEndpoint: 'http://localhost:3001/api/events',
+                    enableAutoTracking: true,
+                    enableSmartTracking: true,
+                    smartTracking: {
+                        enabled: true,
+                        attributePrefix: 'data-analytics',
+                        trackByClass: true,
+                        trackById: true,
+                        debugMode: true
+                    },
+                    debugMode: true
+                });
+
+                analytics.initialize().then(() => {
+                    updateStatus('✅ SDK initialized with Smart Tracking enabled!');
+                    updateStats();
+                }).catch(error => {
+                    updateStatus('❌ SDK initialization failed: ' + error.message);
+                });
+
+                // Override the processEvent method to capture events for demo
+                const originalProcessEvent = analytics.processEvent.bind(analytics);
+                analytics.processEvent = function(event) {
+                    logEvent(event);
+                    return originalProcessEvent(event);
+                };
+
+            } catch (error) {
+                updateStatus('❌ Error creating analytics instance: ' + error.message);
+            }
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').innerHTML = message;
+        }
+
+        function updateStats() {
+            if (analytics) {
+                const stats = analytics.getStats();
+                const smartTracker = analytics.getSmartTracker();
+                const trackedElements = smartTracker ? smartTracker.getTrackedElements().length : 0;
+                
+                updateStatus(`✅ SDK initialized! | Tracked Elements: ${trackedElements} | Events: ${eventCount}`);
+            }
+        }
+
+        function logEvent(event) {
+            eventCount++;
+            const eventLog = document.getElementById('event-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${event.eventName} - ${JSON.stringify(event.properties, null, 2)}\n`;
+            eventLog.textContent = logEntry + eventLog.textContent;
+            updateStats();
+        }
+
+        function showStats() {
+            if (analytics) {
+                const stats = analytics.getStats();
+                alert(JSON.stringify(stats, null, 2));
+            }
+        }
+
+        function rescanElements() {
+            if (analytics) {
+                analytics.rescanSmartElements();
+                updateStats();
+                updateStatus('🔄 Rescanned for new elements');
+            }
+        }
+
+        function clearEvents() {
+            eventCount = 0;
+            document.getElementById('event-log').textContent = '';
+            updateStats();
+        }
+
+        function addDynamicButton() {
+            const container = document.getElementById('dynamic-container');
+            const button = document.createElement('button');
+            button.setAttribute('data-analytics', 'dynamic_button');
+            button.setAttribute('data-analytics-prop-source', 'dynamic');
+            button.textContent = 'Dynamic Button ' + (container.children.length + 1);
+            button.className = 'button info';
+            button.style.margin = '5px';
+            container.appendChild(button);
+            
+            // Rescan after a short delay
+            setTimeout(rescanElements, 100);
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initAnalytics);
+    </script>
+</body>
+</html>

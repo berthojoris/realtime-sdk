@@ -5,6 +5,7 @@ A comprehensive JavaScript SDK for real-time user analytics and event tracking w
 ## 🚀 Features
 
 - **Real-time Event Tracking**: Track clicks, navigation, scroll, inputs, errors, and custom events
+- **Smart Element Detection**: Automatically track elements with special attributes or classes - no JavaScript required!
 - **Automatic Session Management**: Handles user sessions with intelligent timeout and persistence
 - **Privacy-First Design**: Built-in GDPR compliance with consent management and data anonymization
 - **Offline Support**: Queue events when offline and automatically sync when connection is restored
@@ -48,6 +49,7 @@ const analytics = new RealtimeAnalytics({
   apiKey: 'your-api-key',
   apiEndpoint: 'http://localhost:3001/api/events',
   enableAutoTracking: true,
+  enableSmartTracking: true, // 🆕 Enable smart tracking
   batchSize: 10,
   flushInterval: 5000
 });
@@ -55,11 +57,14 @@ const analytics = new RealtimeAnalytics({
 // Initialize and start tracking
 await analytics.initialize();
 
-// Track custom events
+// Track custom events (traditional way)
 analytics.track('button_clicked', {
   button_id: 'signup',
   location: 'homepage'
 });
+
+// 🆕 Smart tracking - just add attributes to HTML!
+// <button data-analytics="button_clicked" data-analytics-prop-location="homepage">Click Me</button>
 
 // Identify users
 analytics.identify('user-123', {
@@ -135,6 +140,44 @@ NODE_ENV=development
 ```
 
 ## 📈 Event Types
+
+### 🆕 Smart Tracking (No JavaScript Required!)
+
+The easiest way to track events - just add attributes to your HTML:
+
+```html
+<!-- Basic tracking -->
+<button data-analytics="button_clicked">Click Me</button>
+
+<!-- With custom properties -->
+<button data-analytics="signup_clicked"
+        data-analytics-prop-button-type="primary"
+        data-analytics-prop-location="header">
+  Sign Up
+</button>
+
+<!-- Using classes -->
+<button class="analytics-purchase">Buy Now</button>
+
+<!-- Using IDs -->
+<button id="analytics-download">Download PDF</button>
+
+<!-- Form tracking -->
+<form data-analytics-event="contact_form" data-analytics-type="submit">
+  <input data-analytics-prop-field="email" type="email">
+  <button type="submit">Submit</button>
+</form>
+```
+
+**Enable Smart Tracking:**
+```javascript
+const analytics = new RealtimeAnalytics({
+  // ... other config
+  enableSmartTracking: true
+});
+```
+
+📖 **See [SMART_TRACKING.md](SMART_TRACKING.md) for complete documentation**
 
 ### Automatic Events
 

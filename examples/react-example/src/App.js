@@ -84,6 +84,27 @@ function App() {
 
       <main>
         <section style={{ marginBottom: '30px' }}>
+          <h2>🎯 Smart Tracking Example</h2>
+          <p>
+            Check out the new Smart Tracking feature that automatically tracks elements with special attributes - no JavaScript required!
+          </p>
+          <a
+            href="/smart-tracking"
+            style={{
+              display: 'inline-block',
+              padding: '10px 20px',
+              backgroundColor: '#28a745',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: '4px',
+              marginBottom: '20px'
+            }}
+          >
+            View Smart Tracking Example →
+          </a>
+        </section>
+
+        <section style={{ marginBottom: '30px' }}>
           <h2>User Identification</h2>
           <button 
             onClick={handleIdentify}

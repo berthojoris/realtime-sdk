@@ -1,9 +1,9 @@
-import { 
-  AnalyticsConfig, 
-  AnalyticsEvent, 
-  CustomEvent, 
-  Plugin, 
-  PerformanceMetrics 
+import {
+  AnalyticsConfig,
+  AnalyticsEvent,
+  CustomEvent,
+  Plugin,
+  PerformanceMetrics
 } from './types';
 import { SessionManager } from './session';
 import { EventTracker } from './tracking';
@@ -11,6 +11,7 @@ import { EventBatcher } from './batching';
 import { PrivacyManager } from './privacy';
 import { WorkerBridge } from './worker';
 import { Utils } from './utils';
+import { SmartTracker } from './smart-tracking';
 
 export class RealtimeAnalytics {
   private static instance: RealtimeAnalytics | null = null;
@@ -20,6 +21,7 @@ export class RealtimeAnalytics {
   private eventBatcher!: EventBatcher;
   private privacyManager!: PrivacyManager;
   private workerBridge: WorkerBridge | null = null;
+  private smartTracker: SmartTracker | null = null;
   private plugins: Map<string, Plugin> = new Map();
   private isInitialized: boolean = false;
   private startTime: number = 0;
@@ -44,6 +46,11 @@ export class RealtimeAnalytics {
       enableOfflineMode: this.config.enableOfflineMode,
       debugMode: this.config.debugMode
     });
+
+    // Initialize smart tracker if enabled
+    if (this.config.enableSmartTracking) {
+      this.smartTracker = new SmartTracker(this.sessionManager, this.config.smartTracking);
+    }
 
     RealtimeAnalytics.instance = this;
   }
@@ -97,6 +104,13 @@ export class RealtimeAnalytics {
       this.eventTracker.startTracking();
     }
 
+    // Start smart tracking if enabled
+    if (this.smartTracker) {
+      this.smartTracker.startTracking();
+      // Set up event listener for smart tracking events
+      document.addEventListener('analytics:track', this.handleSmartTrackingEvent.bind(this));
+    }
+
     // Initialize plugins
     this.plugins.forEach(plugin => {
       plugin.initialize(this);
@@ -114,7 +128,8 @@ export class RealtimeAnalytics {
       features: {
         autoTracking: this.config.enableAutoTracking,
         webWorker: this.config.enableWebWorker,
-        offlineMode: this.config.enableOfflineMode
+        offlineMode: this.config.enableOfflineMode,
+        smartTracking: this.config.enableSmartTracking
       }
     });
   }
@@ -230,11 +245,17 @@ export class RealtimeAnalytics {
 
   stopTracking(): void {
     this.eventTracker.stopTracking();
+    if (this.smartTracker) {
+      this.smartTracker.stopTracking();
+    }
   }
 
   startTracking(): void {
     if (this.isInitialized && this.privacyManager.isTrackingAllowed()) {
       this.eventTracker.startTracking();
+      if (this.smartTracker) {
+        this.smartTracker.startTracking();
+      }
     }
   }
 
@@ -263,6 +284,12 @@ export class RealtimeAnalytics {
     this.eventsSent++;
   }
 
+  private handleSmartTrackingEvent(event: Event): void {
+    const customEvent = event as any; // Use any to access detail property
+    const analyticsEvent = customEvent.detail as AnalyticsEvent;
+    this.processEvent(analyticsEvent);
+  }
+
   private validateConfig(config: AnalyticsConfig): AnalyticsConfig {
     if (!config.apiKey) {
       throw new Error('API key is required');
@@ -286,6 +313,26 @@ export class RealtimeAnalytics {
       enableWebWorker: false,
       debugMode: false,
       respectDoNotTrack: true,
+      enableSmartTracking: false,
+      smartTracking: {
+        enabled: true,
+        attributePrefix: 'data-analytics',
+        trackByClass: true,
+        trackById: true,
+        trackByAttribute: true,
+        eventMappings: {
+          'click': 'click',
+          'submit': 'form_submit',
+          'change': 'input_change',
+          'focus': 'input_focus',
+          'blur': 'input_blur',
+          'hover': 'element_hover'
+        },
+        defaultEventName: 'element_interaction',
+        debounceDelay: 300,
+        respectDisabled: true,
+        ...config.smartTracking
+      },
       ...config
     };
   }
@@ -329,7 +376,31 @@ export class RealtimeAnalytics {
       stats.worker = this.workerBridge.getStats();
     }
 
+    if (this.smartTracker) {
+      stats.smartTracking = {
+        trackedElements: this.smartTracker.getTrackedElements().length,
+        isEnabled: this.smartTracker ? true : false
+      };
+    }
+
     return stats;
+  }
+
+  // Smart tracking API methods
+  getSmartTracker(): SmartTracker | null {
+    return this.smartTracker;
+  }
+
+  trackElement(element: Element, eventName?: string, properties?: Record<string, any>): void {
+    if (this.smartTracker) {
+      this.smartTracker.manuallyTrackElement(element, eventName, properties);
+    }
+  }
+
+  rescanSmartElements(): void {
+    if (this.smartTracker) {
+      this.smartTracker.rescanElements();
+    }
   }
 
   updateConfig(newConfig: Partial<AnalyticsConfig>): void {
@@ -370,6 +441,10 @@ export class RealtimeAnalytics {
       this.workerBridge.destroy();
     }
     
+    if (this.smartTracker) {
+      document.removeEventListener('analytics:track', this.handleSmartTrackingEvent.bind(this));
+    }
+    
     this.eventBatcher.destroy();
     this.sessionManager.clearSession();
     this.sessionManager.clearUserIdentity();
@@ -389,6 +464,7 @@ export { EventTracker } from './tracking';
 export { EventBatcher } from './batching';
 export { PrivacyManager } from './privacy';
 export { WorkerBridge } from './worker';
+export { SmartTracker } from './smart-tracking';
 
 // Global initialization helper
 export function initialize(config: AnalyticsConfig): RealtimeAnalytics {

@@ -14,6 +14,20 @@ export interface AnalyticsConfig {
   respectDoNotTrack?: boolean;
   domainWhitelist?: string[];
   customProperties?: Record<string, any>;
+  enableSmartTracking?: boolean;
+  smartTracking?: SmartTrackingConfig;
+}
+
+export interface SmartTrackingConfig {
+  enabled?: boolean;
+  attributePrefix?: string;
+  trackByClass?: boolean;
+  trackById?: boolean;
+  trackByAttribute?: boolean;
+  eventMappings?: Record<string, string>;
+  defaultEventName?: string;
+  debounceDelay?: number;
+  respectDisabled?: boolean;
 }
 
 export interface EventData {

@@ -9,6 +9,10 @@ const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const morgan = require('morgan');
 
+// Import configuration and middleware
+const config = require('./config/environment');
+const { apiIpWhitelist, getClientIp } = require('./middleware/ipWhitelist');
+
 // Import routes and models
 const eventRoutes = require('./routes/events');
 const analyticsRoutes = require('./routes/analytics');
@@ -18,24 +22,30 @@ const Session = require('./models/Session');
 const User = require('./models/User');
 
 class AnalyticsServer {
-  constructor(config = {}) {
+  constructor(customConfig = {}) {
     this.app = express();
     this.server = http.createServer(this.app);
+    
+    // Merge custom config with environment config
+    this.config = {
+      ...config.server,
+      ...config.database,
+      ...config.security,
+      ...config.analytics,
+      ...customConfig
+    };
+    
+    // Store full config for reference
+    this.fullConfig = config;
+
     this.io = socketIo(this.server, {
       cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+        origin: config.getCorsOriginFunction(),
+        methods: config.cors.methods,
+        credentials: config.cors.credentials
       }
     });
     
-    this.config = {
-      port: config.port || 3001,
-      mongoUri: config.mongoUri || 'mongodb://localhost:27017/realtime_analytics',
-      redisUrl: config.redisUrl || 'redis://localhost:6379',
-      environment: config.environment || 'development',
-      ...config
-    };
-
     this.redis = null;
     this.mongoConnection = null;
   }
@@ -50,6 +60,9 @@ class AnalyticsServer {
       
       console.log(`🚀 Analytics Server running on port ${this.config.port}`);
       console.log(`📊 Dashboard available at http://localhost:${this.config.port}/dashboard`);
+      
+      // Log configuration summary
+      console.log('📋 Configuration Summary:', JSON.stringify(this.fullConfig.getConfigSummary(), null, 2));
     } catch (error) {
       console.error('❌ Failed to initialize server:', error);
       process.exit(1);
@@ -57,6 +70,11 @@ class AnalyticsServer {
   }
 
   async setupMiddleware() {
+    // Trust proxy for IP detection
+    if (this.fullConfig.security.trustProxy) {
+      this.app.set('trust proxy', 1);
+    }
+
     // Security middleware
     this.app.use(helmet({
       contentSecurityPolicy: {
@@ -69,25 +87,37 @@ class AnalyticsServer {
       },
     }));
 
-    // CORS configuration
+    // CORS configuration with dynamic origin checking
     this.app.use(cors({
-      origin: this.config.environment === 'production' 
-        ? ['https://yourdomain.com'] 
-        : ['http://localhost:3000', 'http://localhost:8080'],
-      credentials: true
+      origin: this.fullConfig.getCorsOriginFunction(),
+      methods: this.fullConfig.cors.methods,
+      allowedHeaders: this.fullConfig.cors.headers,
+      credentials: this.fullConfig.cors.credentials,
+      maxAge: this.fullConfig.cors.maxAge,
+      optionsSuccessStatus: 200
     }));
 
+    // IP whitelist for API routes
+    this.app.use('/api', apiIpWhitelist);
+
     // Rate limiting
-    const limiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: this.config.environment === 'production' ? 1000 : 10000, // Limit each IP
-      message: {
-        error: 'Too many requests from this IP, please try again later.'
-      },
-      standardHeaders: true,
-      legacyHeaders: false,
-    });
-    this.app.use('/api/', limiter);
+    if (this.config.rateLimitEnabled) {
+      const limiter = rateLimit({
+        windowMs: this.config.rateLimitWindowMs,
+        max: this.config.maxRequestsPerWindow,
+        message: {
+          error: 'Too many requests from this IP, please try again later.',
+          retryAfter: Math.ceil(this.config.rateLimitWindowMs / 1000)
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: (req) => {
+          // Use client IP for rate limiting
+          return getClientIp(req) || req.ip;
+        }
+      });
+      this.app.use('/api/', limiter);
+    }
 
     // Compression
     this.app.use(compression());
@@ -103,6 +133,16 @@ class AnalyticsServer {
       this.app.use(morgan('combined'));
     }
 
+    // Request logging middleware
+    this.app.use((req, res, next) => {
+      const clientIp = getClientIp(req);
+      if (clientIp) {
+        req.clientIp = clientIp;
+        res.setHeader('X-Client-IP', clientIp);
+      }
+      next();
+    });
+
     // Health check endpoint
     this.app.get('/health', (req, res) => {
       res.json({
@@ -110,7 +150,8 @@ class AnalyticsServer {
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         memory: process.memoryUsage(),
-        version: require('./package.json').version
+        version: require('./package.json').version,
+        config: this.fullConfig.getConfigSummary()
       });
     });
   }
@@ -370,12 +411,7 @@ class AnalyticsServer {
 
 // Initialize server if this file is run directly
 if (require.main === module) {
-  const server = new AnalyticsServer({
-    port: process.env.PORT || 3001,
-    mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017/realtime_analytics',
-    redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
-    environment: process.env.NODE_ENV || 'development'
-  });
+  const server = new AnalyticsServer();
 
   server.initialize().catch(error => {
     console.error('Failed to start server:', error);
